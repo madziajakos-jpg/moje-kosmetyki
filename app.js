@@ -49,7 +49,7 @@ function furl(v,n){return v===SEED.twarz[n]?TB+'twarz-'+(n+1)+'.jpg':undefined}
 const b2d=b=>new Promise(o=>{const r=new FileReader();r.onload=()=>o(r.result);r.readAsDataURL(b)});
 async function big(u,v){if(!u)return v;try{const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw 0;return await b2d(await r.blob())}catch(e){return v}}
 async function botBig(){const d=botData();const P=[];for(const t of d.twarz_referencja)P.push(big(t.url,t.zdjecie).then(x=>t.zdjecie=x));
-for(const c of d.kategorie)for(const p of c.produkty){P.push(big(p.zdjecie_url,p.zdjecie).then(x=>p.zdjecie=x));P.push(big(p.swatch_url,p.swatch).then(x=>p.swatch=x))}await Promise.all(P);return d}
+for(const c of d.kategorie)for(const p of c.produkty){P.push(big(p.zdjecie_url,p.zdjecie).then(x=>p.zdjecie=x));P.push(big(p.swatch_url,p.swatch).then(x=>p.swatch=x))}for(const g of d.infografiki)P.push(big('infografiki/'+g.plik,undefined).then(x=>g.zdjecie=x));await Promise.all(P);return d}
 const OPIS={
  cel:'Kosmetyki Magdy – źródło prawdy dla narzędzia do makijażu (Stylista). Używaj WYŁĄCZNIE tych produktów; nie wymyślaj innych.',
  zrodlo:'Arkusz Google „Kosmetyki” (1UeKuwrdLAHj-s0mkmaZx57hBV55W-SgbywiuzHIHuWk) + zmiany zrobione w apce Moje kosmetyki.',
@@ -71,9 +71,11 @@ const OPIS={
    swatch_typ:'„Swatch” albo „Szczoteczka” – mówi, co pokazuje pole swatch.',
    swatch_url:'To samo zdjęcie swatcha/szczoteczki online (tylko jeśli niezmienione).'
   },
+  infografiki:'Przykłady i instrukcje makijażu (wzorce stylu, kolejność kroków, rozmieszczenie produktów; schema-twarz = schemat stref twarzy). Dla narzędzia: używaj jako referencji JAK nakładać – produkty bierz tylko z kategorie. Pola: nr, plik, tytul, url (GitHub Pages), zdjecie (JPEG base64, do ~1400px).',
   jak_czytac:'Do doboru odcieni patrz na swatch (kolor na skórze) i porównuj z twarz_referencja. Zdjecie służy do rozpoznania produktu. Brak pola = puste w arkuszu.'
  }};
 function botData(){return{opis:OPIS,aktualizacja:S.updatedAt,liczba_produktow:S.items.length,liczba_zdjec_twarzy:S.twarz.length,
+infografiki:INF.map(([f,t],n)=>({nr:n+1,plik:f+'.jpg',tytul:t,opis:'Przykład/instrukcja makijażu dla narzędzia',url:TB.replace('thumbs/','infografiki/')+f+'.jpg'})),
 twarz_referencja:S.twarz.map((v,n)=>({nr:n+1,opis:'Twarz Magdy – zdjęcie referencyjne '+(n+1),url:furl(v,n),zdjecie:v})),
 kategorie:S.kategorie.map(c=>{const p=S.items.filter(i=>i.kategoria==c);return{kategoria:c,podgrupy:[...new Set(p.map(i=>i.podgrupa).filter(Boolean))],liczba:p.length,produkty:p.map(i=>({id:i.id,lp:lp(i),kategoria:i.kategoria,podgrupa:i.podgrupa||undefined,nazwa:i.nazwa,zastosowanie:i.zastosowanie||undefined,kolor:i.kolor||undefined,uwagi:i.uwagi||undefined,
 zdjecie_url:purl(i,'zdjecie'),swatch_typ:i.swatch?(i.swatchLabel||'Swatch'):undefined,swatch_url:purl(i,'swatch'),zdjecie:i.zdjecie||undefined,swatch:i.swatch||undefined}))}})}}
