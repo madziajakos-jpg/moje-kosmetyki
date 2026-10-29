@@ -29,11 +29,11 @@ $('#fab').onclick=()=>edit(null);
 function edit(i){cur=i;ph={};const f=$('#f');$('#fk').innerHTML=S.kategorie.map(c=>`<option>${esc(c)}</option>`).join('');
 f.reset();const d=i||{kategoria:tab};for(const k of['kategoria','podgrupa','nazwa','zastosowanie','kolor','uwagi'])f[k].value=d[k]||'';
 $('#v1').src=d.zdjecie||'';$('#v2').src=d.swatch||'';$('#del').style.display=i?'':'none';$('#edt').textContent=i?'Edytuj':'Nowy kosmetyk';$('#ed').showModal()}
-function faceSet(n){const f=document.createElement('input');f.type='file';f.accept='image/*';f.onchange=()=>rs(f.files[0],u=>{S.twarz[n]=u;save();render()},800);f.click()}
+function faceSet(n){const f=document.createElement('input');f.type='file';f.accept='image/*';f.onchange=()=>rs(f.files[0],u=>{S.twarz[n]=u;save();render()},1200);f.click()}
 function faceDel(n){if(confirm('Usunąć zdjęcie twarzy '+(n+1)+'?')){S.twarz.splice(n,1);save();render()}}
 function rs(file,cb,M){const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=M||200,s=Math.min(1,m/Math.max(im.width,im.height));
-const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7))};im.src=r.result};r.readAsDataURL(file)}
-$('#p1').onchange=e=>rs(e.target.files[0],u=>{ph.zdjecie=u;$('#v1').src=u});$('#p2').onchange=e=>rs(e.target.files[0],u=>{ph.swatch=u;$('#v2').src=u});
+const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',m>200?.85:.7))};im.src=r.result};r.readAsDataURL(file)}
+$('#p1').onchange=e=>rs(e.target.files[0],u=>{ph.zdjecie=u;$('#v1').src=u},1200);$('#p2').onchange=e=>rs(e.target.files[0],u=>{ph.swatch=u;$('#v2').src=u},1200);
 $('#ed').onclose=()=>{if($('#ed').returnValue!='save')return;const f=$('#f');const o=cur||{id:'k'+Date.now(),zdjecie:'',swatch:'',swatchLabel:'Swatch'};
 for(const k of['kategoria','podgrupa','nazwa','zastosowanie','kolor','uwagi'])o[k]=f[k].value.trim();Object.assign(o,ph);
 if(!cur)S.items.push(o);save();tab=o.kategoria;render()};
@@ -41,7 +41,11 @@ $('#del').onclick=()=>{if(confirm('Usunąć „'+cur.nazwa+'”?')){S.items=S.it
 const TB='https://madziajakos-jpg.github.io/moje-kosmetyki/thumbs/';
 function purl(i,k){const sd=SEED.items.find(x=>x.id==i.id);if(!i[k]||!sd||sd[k]!==i[k])return undefined;const m=i[k].match(/^data:image\/(\w+)/);return TB+i.id+(k=='swatch'?'-swatch':'')+'.'+(m&&m[1]=='png'?'png':'jpg')}
 function furl(v,n){return v===SEED.twarz[n]?TB+'twarz-'+(n+1)+'.jpg':undefined}
-function botData(){return{opis:'Lista kosmetyków Magdy. Źródło prawdy. Używaj tylko tych produktów. Pole "zastosowanie" = typ produktu. Zdjęcia: zdjecie/swatch to miniatury base64 (data URL, ~200px); zdjecie_url/swatch_url to te same pliki na GitHub Pages (brak URL = zdjęcie dodane/zmienione w apce, jest tylko base64).',aktualizacja:S.updatedAt,liczba:S.items.length,
+const b2d=b=>new Promise(o=>{const r=new FileReader();r.onload=()=>o(r.result);r.readAsDataURL(b)});
+async function big(u,v){if(!u)return v;try{const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw 0;return await b2d(await r.blob())}catch(e){return v}}
+async function botBig(){const d=botData();const P=[];for(const t of d.twarz_referencja)P.push(big(t.url,t.zdjecie).then(x=>t.zdjecie=x));
+for(const c of d.kategorie)for(const p of c.produkty){P.push(big(p.zdjecie_url,p.zdjecie).then(x=>p.zdjecie=x));P.push(big(p.swatch_url,p.swatch).then(x=>p.swatch=x))}await Promise.all(P);return d}
+function botData(){return{opis:'Lista kosmetyków Magdy. Źródło prawdy. Używaj tylko tych produktów. Pole "zastosowanie" = typ produktu. Zdjęcia: zdjecie/swatch to zdjęcia base64 (data URL, duże do ~1200px); zdjecie_url/swatch_url to te same pliki na GitHub Pages (brak URL = zdjęcie dodane/zmienione w apce, jest tylko base64).',aktualizacja:S.updatedAt,liczba:S.items.length,
 twarz_referencja:S.twarz.map((v,n)=>({nr:n+1,url:furl(v,n),zdjecie:v})),
 kategorie:S.kategorie.map(c=>({kategoria:c,produkty:S.items.filter(i=>i.kategoria==c).map(i=>({id:i.id,nazwa:i.nazwa,podgrupa:i.podgrupa||undefined,zastosowanie:i.zastosowanie,kolor:i.kolor||undefined,uwagi:i.uwagi||undefined,
 zdjecie_url:purl(i,'zdjecie'),swatch_url:purl(i,'swatch'),swatch_opis:i.swatch?(i.swatchLabel||'Swatch'):undefined,zdjecie:i.zdjecie||undefined,swatch:i.swatch||undefined}))}))}}
@@ -54,7 +58,7 @@ if(z)m+=`  - Zdjęcie: ![${i.nazwa}](${z})\n`;else if(i.zdjecie)m+=`  - Zdjęcie
 if(w)m+=`  - ${i.swatchLabel||'Swatch'}: ![swatch ${i.nazwa}](${w})\n`;else if(i.swatch)m+=`  - Swatch: tylko w JSON (base64, id ${i.id})\n`}}return m}
 async function exp(t){const d=new Date().toISOString().slice(0,10);let name,txt,type='application/json';
 if(t=='backup'){name=`kosmetyki-kopia-${d}.json`;txt=JSON.stringify({app:'moje-kosmetyki',...S})}
-else if(t=='json'){name='kosmetyki-export-for-bot.json';txt=JSON.stringify(botData(),null,1)}else{name='kosmetyki-export-for-bot.md';txt=botMd();type='text/markdown'}
+else if(t=='json'){name='kosmetyki-export-for-bot.json';txt=JSON.stringify(await botBig(),null,1)}else{name='kosmetyki-export-for-bot.md';txt=botMd();type='text/markdown'}
 const file=new File([txt],name,{type});
 if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return}catch(e){if(e.name=='AbortError')return}}
 const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;a.click()}
